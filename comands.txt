@@ -1,0 +1,57 @@
+> Generate ceremony file
+snarkjs powersoftau new bn128 12 ceremony_0000.ptau -v
+12 - maximum constrains
+
+> Contributing randomness to the ceremony file
+snarkjs powersoftau contribute ceremony_0000.ptau ceremony_0001.ptau -v
+Will ask for random text (entropy). We will give a random number from C constant
+7096582353848909528348048549251173597176314150356879228806966674
+This number should be deleted so we will delet ceremony_0000.ptau as well
+
+> Now we will run the command again
+snarkjs powersoftau contribute ceremony_0001.ptau ceremony_0002.ptau -v
+with another random entropy 6072731430415003562940954686910 ad we delete ceremony_0001.ptau
+
+
+> In order to verify a ceremony, we run
+snarkjs powersoftau verify ceremony_0002.ptau
+
+> Prepare for phase 
+snarkjs powersoftau prepare phase2 ceremony_0002.ptau ceremony_final.ptau -v
+
+> We delete the intermediary file ceremony_0002.ptau and we verify the final ceremony file
+snarkjs powersoftau verify ceremony_final.ptau
+
+> We compile the circuit so we can feed it to the ceremony file
+circom circuit.circom --r1cs
+
+> Feed the circuit in r1cs form to the ceremony file and generate the zkey file
+snarkjs groth16 setup circuit.r1cs ceremony_final.ptau setup_0000.zkey
+
+> Contribute another additional randomness to the zkey file with another random entropy: 80448470654191005538931842165167724566347761146
+snarkjs zkey contribute setup_0000.zkey setup_final.zkey
+
+Then we delete setup_0000
+> Verify zkey
+snarkjs zkey verify circuit.r1cs ceremony_final.ptau setup_final.zkey -v 
+Bcs the zk file is unique for each circuit we want to combine it with the circuit when we
+verify it
+
+> We construc a proof so we generate input.json (manually) with random x and random k
+    Compilt ehte circuit to wasm
+    circom circuit.circom --wasm
+
+    snarkjs groth16 fullprove input.json circuit_js/circuit.wasm setup_final.zkey proof.json public.json
+    Will generate a proof and public outputs
+
+> Generate a verifier smart contract
+snarkjs zkey export solidityverifier setup_final.zkey Verifier.sol
+
+> We test the sc using Remix or whatever hardhat/foundry
+but in order to obtain the variables we run
+snarkjs zkey export soliditycalldata public.json proof.json
+
+export parameters
+["0x25d665e0e39078597562dc6de1552be855bd0f2f9aaefa0242eb1611f3fa5dec", "0x2191f3b1a1f1e85454cca710aab6b1afc81a2ef951501f2254e2c5117d114b98"],[["0x0016c26228c36d58a19ef92e903ec2c721feaf26a6f1d661f08559cf0ff14eab", "0x25eff5b82ea349bc5f39af573a940bade8c017c290a9cc1e9f9cdf66a3fbec8d"],["0x1f3183bc36e2e18c866269dce6b26163cafaa7a2881178dd6f69d3a41bc90e9e", "0x1bf5f6ae0f8702562cc73fb01eeaf2c5852da448cc7a43ba693b67aaf2950dc9"]],["0x256179860df2aa189972efe790351deb43ca53fa6d1bf02dba8199d6836760a7", "0x2ab80668ab09279bd35ea1de7609eed17769ab8b6cc51655345cf44d73863f4f"],["0x2f48f1bbf9651f20ab1ea3d7d80683b2167b004d0f5258e680b96771dfb327be"]
+
+returns bool
